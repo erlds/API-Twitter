@@ -1,11 +1,12 @@
 package io.github.erlds.quarkussocial.rest;
 
+import io.github.erlds.quarkussocial.domain.model.User;
 import io.github.erlds.quarkussocial.rest.dto.CreateUserRequest;
+import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
+import io.quarkus.hibernate.orm.panache.PanacheQuery;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.transaction.Transactional;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -15,8 +16,18 @@ import javax.ws.rs.core.Response;
 public class UserResource {
 
     @POST
-    @Consumes("application/json")
+    @Transactional
     public Response createUser(CreateUserRequest userRequest){
-        return Response.ok(userRequest).build();
+        User user = new User();
+        user.setAge(userRequest.getAge());
+        user.setName(userRequest.getName());
+        user.persist();
+        return Response.ok(user).build();
+    }
+
+    @GET
+    public Response listAllUsers(){
+        PanacheQuery<User> query = User.findAll();
+        return Response.ok(query.list()).build();
     }
 }
