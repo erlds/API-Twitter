@@ -1,9 +1,12 @@
 package io.github.erlds.quarkussocial.domain.model;
 
+import lombok.Data;
+
 import javax.persistence.*;
 
 @Entity
 @Table(name = "followers")
+@Data
 public class Follower {
 
     @Id
