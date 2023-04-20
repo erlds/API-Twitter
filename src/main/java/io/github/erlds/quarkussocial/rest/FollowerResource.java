@@ -6,6 +6,7 @@ import io.github.erlds.quarkussocial.domain.repository.UserRepository;
 import io.github.erlds.quarkussocial.rest.dto.FollowerRequest;
 
 import javax.inject.Inject;
+import javax.transaction.Transactional;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -26,8 +27,13 @@ public class FollowerResource {
     }
 
     @PUT
+    @Transactional
     public Response followUser(
             @PathParam("userId") Long userId, FollowerRequest followerRequest){
+
+        if (userId.equals(followerRequest.getFollowerId())){
+            return Response.status(Response.Status.CONFLICT).entity("You can't follow yourself !").build();
+        }
 
         var user = userRepository.findById(userId);
         if (user == null) {
@@ -36,11 +42,15 @@ public class FollowerResource {
 
         var follower = userRepository.findById(followerRequest.getFollowerId());
 
-        var entity = new Follower();
-        entity.setUser(user);
-        entity.setFollower(follower);
+        boolean follows = followerRepository.follows(follower, user);
 
-        followerRepository.persist(entity);
+        if (!follows) {
+            var entity = new Follower();
+            entity.setUser(user);
+            entity.setFollower(follower);
+
+            followerRepository.persist(entity);
+        }
 
         return Response.status(Response.Status.NO_CONTENT).build();
     }
