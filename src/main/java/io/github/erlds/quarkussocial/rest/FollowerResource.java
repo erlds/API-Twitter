@@ -12,7 +12,6 @@ import javax.transaction.Transactional;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.List;
 
 @Path("/users/{userId}/followers")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -76,6 +75,21 @@ public class FollowerResource {
 
         responseObject.setContent(followerList);
         return Response.ok(responseObject).build();
+    }
+
+    @DELETE
+    @Transactional
+    public Response unfollowUser(
+            @PathParam("userId") Long userId,
+            @QueryParam("followerId") Long followerId){
+        var user = userRepository.findById(userId);
+        if (user == null) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        followerRepository.deleteByFollowerAndUser(followerId,userId);
+
+        return Response.status(Response.Status.NO_CONTENT).build();
     }
 
 }
