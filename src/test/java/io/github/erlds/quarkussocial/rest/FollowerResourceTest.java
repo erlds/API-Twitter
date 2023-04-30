@@ -1,18 +1,19 @@
 package io.github.erlds.quarkussocial.rest;
 
+import io.github.erlds.quarkussocial.domain.model.Follower;
 import io.github.erlds.quarkussocial.domain.model.User;
+import io.github.erlds.quarkussocial.domain.repository.FollowerRepository;
 import io.github.erlds.quarkussocial.domain.repository.UserRepository;
 import io.github.erlds.quarkussocial.rest.dto.FollowerRequest;
 import io.quarkus.test.common.http.TestHTTPEndpoint;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 import javax.transaction.Transactional;
+import javax.ws.rs.core.Response;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,8 +24,11 @@ class FollowerResourceTest {
 
     @Inject
     UserRepository userRepository;
+    @Inject
+    FollowerRepository followerRepository;
 
     Long userId;
+    Long followerId;
 
     @BeforeEach
     @Transactional
@@ -34,6 +38,20 @@ class FollowerResourceTest {
         user.setName("Fulano");
         userRepository.persist(user);
         userId = user.getId();
+
+
+        var follower = new User();
+        follower.setAge(34);
+        follower.setName("Cicrano");
+
+        userRepository.persist(follower);
+
+        followerId = follower.getId();
+
+        var followerEntity = new Follower();
+        followerEntity.setFollower(follower);
+        followerEntity.setUser(user);
+        followerRepository.persist(followerEntity);
     }
 
     @Test
@@ -49,8 +67,8 @@ class FollowerResourceTest {
     }
 
     @Test
-    @DisplayName("should return 404 when User id doesn't exist")
-    public void userIdDoesntExist() {
+    @DisplayName("should return 404 when User id doesn't exist when trying to follow user")
+    public void userNotFoundWhenTryingToFollowTest() {
         var body = new FollowerRequest();
         body.setFollowerId(userId);
 
@@ -60,5 +78,43 @@ class FollowerResourceTest {
                 .when().put()
                 .then().statusCode(404);
 
+    }
+
+    @Test
+    @DisplayName("should follow user")
+    public void followUserTest() {
+        var body = new FollowerRequest();
+        body.setFollowerId(followerId);
+
+        given().contentType(ContentType.JSON).body(body)
+                .pathParam("userId",userId)
+                .when().put()
+                .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("should return 404 when list user followers and user doesn't exist")
+    public void userNotFoundWhenListingFollowerswTest() {
+        var inexistentUserId = 999;
+        given().contentType(ContentType.JSON)
+                .pathParam("userId",inexistentUserId)
+                .when().get()
+                .then().statusCode(404);
+    }
+
+    @Test
+    @DisplayName("should list a user's followers")
+    public void listFollowersTest() {
+        var response = given().contentType(ContentType.JSON)
+                .pathParam("userId",userId)
+                .when().get()
+                .then().extract().response();
+
+        var followersCount = response.jsonPath().get("followersCount");
+        var followerContent = response.jsonPath().getList("content");
+
+        assertEquals(Response.Status.OK.getStatusCode(),response.getStatusCode());
+        assertEquals(1,followersCount);
+        assertEquals(1,followerContent.size());
     }
 }
