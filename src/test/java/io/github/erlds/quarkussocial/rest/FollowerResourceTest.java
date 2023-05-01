@@ -62,7 +62,7 @@ class FollowerResourceTest {
         given().contentType(ContentType.JSON)
                 .body(body).pathParam("userId",userId)
                 .when().put()
-                .then().statusCode(409)
+                .then().statusCode(Response.Status.CONFLICT.getStatusCode())
                 .body(Matchers.is("You can't follow yourself !"));
     }
 
@@ -72,11 +72,11 @@ class FollowerResourceTest {
         var body = new FollowerRequest();
         body.setFollowerId(userId);
 
-        var inexistentUserId = 999;
+        var nonexistentUserId = 999;
         given().contentType(ContentType.JSON)
-                .body(body).pathParam("userId",inexistentUserId)
+                .body(body).pathParam("userId",nonexistentUserId)
                 .when().put()
-                .then().statusCode(404);
+                .then().statusCode(Response.Status.NOT_FOUND.getStatusCode());
 
     }
 
@@ -94,12 +94,12 @@ class FollowerResourceTest {
 
     @Test
     @DisplayName("should return 404 when list user followers and user doesn't exist")
-    public void userNotFoundWhenListingFollowerswTest() {
-        var inexistentUserId = 999;
+    public void userNotFoundWhenListingFollowersTest() {
+        var nonexistentUserId = 999;
         given().contentType(ContentType.JSON)
-                .pathParam("userId",inexistentUserId)
+                .pathParam("userId",nonexistentUserId)
                 .when().get()
-                .then().statusCode(404);
+                .then().statusCode(Response.Status.NOT_FOUND.getStatusCode());
     }
 
     @Test
@@ -116,5 +116,24 @@ class FollowerResourceTest {
         assertEquals(Response.Status.OK.getStatusCode(),response.getStatusCode());
         assertEquals(1,followersCount);
         assertEquals(1,followerContent.size());
+    }
+
+    @Test
+    @DisplayName("should return 404 on unfollow user and user id doesn't exist")
+    public void userNotFoundWhenUnfollowingAUserTest() {
+        var nonexistentUserId = 999;
+        given().queryParam("followerId",followerId)
+                .pathParam("userId",nonexistentUserId)
+                .when().delete()
+                .then().statusCode(Response.Status.NOT_FOUND.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("should unfollow an user")
+    public void unfollowUserTest() {
+        given().queryParam("followerId",followerId)
+                .pathParam("userId",userId)
+                .when().delete()
+                .then().statusCode(Response.Status.NO_CONTENT.getStatusCode());
     }
 }
